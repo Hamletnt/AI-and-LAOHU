@@ -1,0 +1,6 @@
+9/11/2024
+library ที่ใช้
+
+python -m pip install pandas --ในVs code
+
+pip install openpyxl --ใน cmd
