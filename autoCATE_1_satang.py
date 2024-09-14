@@ -23,9 +23,23 @@ if column_name:
     def classify_ingredient(ingredient_name):
         # ตรวจสอบว่าค่า ingredient_name เป็นข้อความหรือไม่
         if isinstance(ingredient_name, str):
-            beef_keywords = ["เนื้อ", "ใบพาย", "ริบอาย"]
-            pork_keywords = ["หมู", "สันคอ", "สันนอก"]
-            chicken_keywords = ["ไก่", "น่องไก่", "อกไก่"]
+            beef_keywords = [
+                                "เนื้อ", "ใบพาย", 
+                                "ริบอาย", "น่องลาย", 
+                                "สันนอก", "สะโพก", 
+                                "เสือร้องไห้"
+                             ]
+            
+            pork_keywords = [
+                                "หมู", "สันคอ", "สันนอก", 
+                                "สามชั้น", "หมูนุ่ม", "พริกไทยดำ", 
+                                "หมักงา", "หมูซ่า", "หมูเด้ง", 
+                                "สะโพก"
+                            ]
+            chicken_keywords = [
+                                    "ไก่", "น่องไก่", "อกไก่",
+                                    "ไก่นุ่ม", "ไก่ซ่า", "ไก่เด้ง",
+                                ]
 
             if any(keyword in ingredient_name for keyword in beef_keywords):
                 return "เนื้อวัว"
