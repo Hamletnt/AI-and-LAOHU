@@ -3,7 +3,7 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk, Label
 import pandas as pd
 from AI import vectorizer, model
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 
 # Define global variable for the DataFrame and checkbox states
 df = None
@@ -450,24 +450,25 @@ notebook.add(full_data_frame, text="Full Data")  #1
 notebook.add(filtered_data_frame, text="Filtered Data") #2
 
 # Create "Import File" button
-import_button = tk.Button(frame2, text="Upload file", command=import_file, font=("Kodchasan",20,'bold'), relief="raised", cursor="hand2")
+import_button = tk.Button(frame2, text="Upload file", command=import_file, font=("Kodchasan",20,'bold'), relief="raised", cursor="hand2", bg="#301717", fg="#ffffff", activebackground="#fb2c2c")
 import_button.place(relx=0.13,rely=0.43, anchor="center", height=60)
 
 # Create "Export Selected" button
-export_button = tk.Button(filtered_data_frame, text="Export file", command=export_selected_rows, font=("Kodchasan",18,'bold'), cursor="hand2")
+export_button = tk.Button(filtered_data_frame, text="Export file", command=export_selected_rows, font=("Kodchasan",18,'bold'), cursor="hand2", bg="#301717", fg="#ffffff", activebackground="#fb2c2c")
 export_button.pack(side="bottom", padx=(1200,0), pady=5)
 
 # Create combobox for category selection
-category_combobox = ttk.Combobox(frame2, values=categories, state="readonly", font=("Kodchasan", 12, 'bold'), foreground='#a6a6a6', cursor="hand2")
+category_combobox = ttk.Combobox(frame2, values=categories, state="readonly", font=("Kodchasan", 12, 'bold'), foreground='#a6a6a6')
 category_combobox.set("Select Categories")
 category_combobox.place(relx=0.9,rely=0.75, anchor="center", width=200)
+category_combobox.configure(cursor="hand2")
 
 # Create "Submit" button
-submit_button = tk.Button(full_data_frame, text="submit", command=submit_selection, font=("Kodchasan", 18, 'bold'), cursor="hand2")
+submit_button = tk.Button(full_data_frame, text="submit", command=submit_selection, font=("Kodchasan", 18, 'bold'), cursor="hand2", bg="#301717", fg="#ffffff", activebackground="#fb2c2c")
 submit_button.pack(side="bottom", padx=(1200,0), pady=5)
 
 # Create the Predict Categories button
-predict_button = tk.Button(frame2, text="Predict Categories", command=apply_predictions, font=("Kodchasan", 12, 'bold'), cursor="hand2")
+predict_button = tk.Button(frame2, text="Predict Categories", command=apply_predictions, font=("Kodchasan", 12, 'bold'), cursor="hand2", bg="#301717", fg="#ffffff", activebackground="#fb2c2c")
 predict_button.place(relx=0.72,rely=0.75, anchor="center")
 
 # Create Treeview widget for Full Data
@@ -563,11 +564,11 @@ tree.bind("<Button-1>", toggle_checkbox)
 root.geometry("1000x300")
 
 root.attributes("-fullscreen", True)
-# ฟังก์ชันเพื่อออกจากโหมดเต็มจอเมื่อกดปุ่ม "Esc"
-def exit_fullscreen(event):
-    root.attributes("-fullscreen", False)
-# ผูกคีย์ "Esc" เพื่อออกจากโหมดเต็มจอ
-root.bind("<Escape>", exit_fullscreen)
+# ฟังก์ชันเพื่อปิดโปรแกรมเมื่อกดปุ่ม "Esc"
+def close_program(event):
+    root.destroy()  # ปิดโปรแกรม
+# ผูกคีย์ "Esc" เพื่อปิดโปรแกรม
+root.bind("<Escape>", close_program)
 
 root.iconbitmap("laohu.ico")
 
