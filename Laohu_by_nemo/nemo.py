@@ -3,11 +3,15 @@ from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pandas as pd
 from AI import vectorizer, model
+from datetime import datetime
 
 # Define global variable for the DataFrame and checkbox states
 df = None
 checkbox_states = {}  # To store checkbox states for each row
 current_view = "full"  # To keep track of current view (full or filtered)
+# Global variables to store selected month and year
+selected_month = None
+selected_year = None
 
 # Define categories
 categories = [
@@ -19,12 +23,12 @@ categories = [
 ]
 
 def import_file():
-    global df, checkbox_states
+    global df, checkbox_states, file_path
     file_path = filedialog.askopenfilename(
         title="เลือกไฟล์ Excel เพื่อโหลด",
         filetypes=[("Excel files", "*.xlsx")]
     )
-    
+
     if file_path:
         try:
             df = pd.read_excel(file_path)
@@ -34,19 +38,31 @@ def import_file():
                 df['Selected'] = ["❌" for _ in range(len(df))]
             if 'Category' not in df.columns:
                 df['Category'] = [""] * len(df)
+            
             if 'วันที่' in df.columns:
+                # Convert to datetime and handle errors
                 df['วันที่'] = pd.to_datetime(df['วันที่'], errors='coerce')
 
-                # Format the date manually to m/d/yyyy
-                df['วันที่'] = df['วันที่'].apply(
-                    lambda x: f"{x.month}/{x.day}/{x.year}" if pd.notna(x) else ""
-                )
+                # Fill NaT values with the previous valid date
+                df['วันที่'] = df['วันที่'].fillna(method='ffill')
+
+                # Create 'month' and 'year' columns
+                df['month'] = df['วันที่'].dt.month
+                df['year'] = df['วันที่'].dt.year
+
+                # Apply formatting for valid dates to m/d/yyyy format
+                def format_date(x):
+                    if pd.notna(x):
+                        return f"{x.month}/{x.day}/{x.year}"  # Format to m/d/yyyy without leading zeros
+                    return ""  # Handle NaT or invalid dates
+
+                df['วันที่'] = df['วันที่'].apply(format_date)
 
             # Ensure 'Selected' and 'Category' are in the correct positions
             df.insert(3, 'Selected', df.pop('Selected'))  # Move 'Selected' to column D (index 3)
             df.insert(4, 'Category', df.pop('Category'))  # Move 'Category' to column E (index 4)
 
-            # Handle NaT, NaN values and format dates
+            # Handle NaT, NaN values and format other columns
             for col in df.columns:
                 if pd.api.types.is_datetime64_any_dtype(df[col]):
                     df[col] = df[col].apply(lambda x: "" if pd.isna(x) else x.strftime('%Y-%m-%d'))
@@ -78,6 +94,18 @@ def load_csv():
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load file: {e}")
 
+def fill_na_dates():
+    last_valid_date = None
+    for i in range(len(df)):
+        if pd.isna(df['วันที่'].iloc[i]):
+            df['วันที่'].iloc[i] = last_valid_date
+        else:
+            last_valid_date = df['วันที่'].iloc[i]
+    # Update 'month' and 'year' after filling NaT
+    df['month'] = df['วันที่'].dt.month
+    df['year'] = df['วันที่'].dt.year
+
+
 def update_treeview(filtered_df=None):
     # Clear the Treeview before displaying new data
     tree.delete(*tree.get_children())
@@ -86,7 +114,8 @@ def update_treeview(filtered_df=None):
     data_to_display = filtered_df if filtered_df is not None else df
     if data_to_display is None:
         return
-
+    # Remove 'month' and 'year' columns from the displayed data
+    data_to_display = data_to_display.drop(columns=['month', 'year'], errors='ignore')
     # Set columns in the Treeview
     columns = list(data_to_display.columns)
     tree["columns"] = columns
@@ -108,6 +137,26 @@ def update_treeview(filtered_df=None):
     for i, row in data_to_display.iterrows():
         tag = "evenrow" if i % 2 == 0 else "oddrow"
         tree.insert("", "end", values=list(row), tags=(tag,))
+
+def filter_by_month_year(month, year):
+    filtered_df = df[(df['month'] == month) & (df['year'] == year)]
+    
+    print(f"Number of rows after filtering for month {month} and year {year}: {len(filtered_df)}")
+    if filtered_df.empty:
+        print("No data found for the specified month and year.")
+    else:
+        print("Filtered DataFrame:\n", filtered_df)
+        update_treeview(filtered_df)  # แสดงข้อมูลที่กรองใน Treeview
+
+def show_selected_month_year():
+    global selected_month, selected_year
+    month = int(month_combobox.get())
+    year = int(year_combobox.get())
+    selected_month = month
+    selected_year = year
+
+    # Now call your filter function
+    filter_by_month_year(month, year)
 
 def toggle_checkbox(event):
     item = tree.identify_row(event.y)
@@ -204,7 +253,6 @@ def export_selected_rows():
             messagebox.showinfo("การส่งออกสำเร็จ", f"ข้อมูลที่เลือกและยอดรวมตามหมวดหมู่ได้ถูกบันทึกไว้ที่: {file_path}")
         except Exception as e:
             messagebox.showerror("ข้อผิดพลาด", f"ไม่สามารถส่งออกไฟล์ได้: {str(e)}")
-
 
 def submit_selection():
     # Filter the DataFrame based on selected rows
@@ -403,7 +451,7 @@ def apply_predictions():
             # If no category, keep it unselected (❌)
             tree.set(row_id, 'Selected', '❌')
             df.at[row_index, 'Selected'] = '❌'
-
+            
 # Create main window
 root = tk.Tk()
 root.title("Laohu")
@@ -419,6 +467,21 @@ filtered_data_frame = tk.Frame(notebook)
 # Add frames to notebook
 notebook.add(full_data_frame, text="Full Data")  #1
 notebook.add(filtered_data_frame, text="Filtered Data") #2
+
+# Create combobox for selecting month (1-12)
+month_label = tk.Label(root, text="เดือน (1-12):")
+month_label.pack()
+month_combobox = ttk.Combobox(root, values=[str(i) for i in range(1, 13)], state="readonly")  # 1-12
+month_combobox.pack()
+
+# Create combobox for selecting year (e.g., 2022-2025)
+year_label = tk.Label(root, text="ปี (YYYY):")
+year_label.pack()
+year_combobox = ttk.Combobox(root, values=[str(i) for i in range(2020, 2026)], state="readonly")  # 2020-2025
+year_combobox.pack()
+
+filter_button = tk.Button(root, text="แสดงข้อมูลตามเดือน/ปี", command=show_selected_month_year)
+filter_button.pack()
 
 # Create "Import File" button
 import_button = tk.Button(full_data_frame, text="นำเข้าไฟล์ Excel", command=import_file)
@@ -530,6 +593,8 @@ def set_display_size():
     full_data_frame.config(width=int(screen_width * 0.8), height=int(screen_height * 0.6))
 
 set_display_size()
+
+print(df)
 
 # Run the main loop
 root.mainloop()
